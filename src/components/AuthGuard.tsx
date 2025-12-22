@@ -11,26 +11,20 @@ export default function AuthGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // ✅ SUDAH LOGIN
-        setIsAuth(true);
-      } else {
-        // ❌ BELUM LOGIN → TENDANG
-        setIsAuth(false);
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
         router.replace("/login");
       }
-      setLoading(false);
+      setChecking(false);
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [router]);
 
-  if (loading) {
+  if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -38,5 +32,5 @@ export default function AuthGuard({
     );
   }
 
-  return isAuth ? <>{children}</> : null;
+  return <>{children}</>;
 }

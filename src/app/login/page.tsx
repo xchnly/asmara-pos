@@ -48,10 +48,7 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-
-      document.cookie = "auth=true; path=/; max-age=86400";
       successAlert("Login berhasil! Mengarahkan ke dashboard...");
-      router.push("/dashboard");
     } catch (err: unknown) {
       console.error(err);
 
