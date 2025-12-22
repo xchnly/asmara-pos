@@ -30,7 +30,6 @@ export default function DashboardLayout({
   const [mounted, setMounted] = useState(true);
 
   useEffect(() => {
-
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
     };
@@ -47,7 +46,7 @@ export default function DashboardLayout({
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.replace("/login");
+      // ✅ JANGAN ADA router di sini
     } catch (err) {
       console.error("Logout gagal:", err);
     }
@@ -149,9 +148,7 @@ export default function DashboardLayout({
                 <Menu className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-2xl font-bold text-slate-900">
-              Dashboard
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
           </div>
 
           <div className="bg-white rounded-2xl shadow p-4 lg:p-6 min-h-[70vh]">
