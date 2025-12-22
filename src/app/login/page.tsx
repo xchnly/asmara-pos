@@ -27,49 +27,49 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = async () => {
-  if (!email || !password) {
-    errorAlert("Email dan password wajib diisi");
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    errorAlert("Format email tidak valid");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    await signInWithEmailAndPassword(auth, email, password);
-
-    if (rememberMe) {
-      localStorage.setItem("rememberedEmail", email);
-    } else {
-      localStorage.removeItem("rememberedEmail");
+    if (!email || !password) {
+      errorAlert("Email dan password wajib diisi");
+      return;
     }
 
-    // Simpan auth state dengan lebih reliable
-    localStorage.setItem("isAuthenticated", "true");
-    
-    // Gunakan cookies dengan SameSite attribute
-    document.cookie = "auth=true; path=/; max-age=86400; SameSite=Lax";
-    
-    successAlert("Login berhasil! Mengarahkan ke dashboard...");
-    
-    // Tunggu sejenak sebelum redirect untuk memastikan state tersimpan
-    setTimeout(() => {
-      router.push("/dashboard");
-      router.refresh(); // Refresh router untuk update state
-    }, 1000);
-    
-  } catch (err: unknown) {
-    console.error("Login error:", err);
-    // ... (error handling tetap sama)
-  } finally {
-    setLoading(false);
-  }
-};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      errorAlert("Format email tidak valid");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await signInWithEmailAndPassword(auth, email, password);
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+
+      // Simpan auth state dengan lebih reliable
+      localStorage.setItem("isAuthenticated", "true");
+
+      // Gunakan cookies dengan SameSite attribute
+      document.cookie = "auth=true; path=/; max-age=86400; SameSite=Lax";
+
+      successAlert("Login berhasil! Mengarahkan ke dashboard...");
+
+      // Tunggu sejenak sebelum redirect untuk memastikan state tersimpan
+      // page.tsx - Di dalam handleLogin, ganti setTimeout:
+      setTimeout(() => {
+        // Gunakan hard refresh untuk reset semua state
+        window.location.href = "/dashboard";
+      }, 1000);
+    } catch (err: unknown) {
+      console.error("Login error:", err);
+      // ... (error handling tetap sama)
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {

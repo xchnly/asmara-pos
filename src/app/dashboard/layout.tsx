@@ -43,10 +43,23 @@ export default function DashboardLayout({
   const closeSidebar = () => isMobile && setSidebarOpen(false);
 
   // 🔥 LOGOUT YANG BENAR (FIREBASE)
+  // layout.tsx - Perbaiki handleLogout
   const handleLogout = async () => {
     try {
+      // 1. Sign out dari Firebase
       await signOut(auth);
-      // ✅ JANGAN ADA router di sini
+
+      // 2. Hapus semua auth state dari storage
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("rememberedEmail");
+
+      // 3. Hapus cookie
+      document.cookie = "auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      // 4. Redirect ke login page
+      // AuthGuard akan otomatis redirect karena user sudah null
+      // atau bisa langsung:
+      window.location.href = "/"; // Hard redirect untuk reset state
     } catch (err) {
       console.error("Logout gagal:", err);
     }

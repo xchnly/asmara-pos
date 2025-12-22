@@ -1,33 +1,42 @@
+// components/AuthGuard.tsx
 "use client";
 
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
-export default function AuthGuard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login");
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+
+      // Jika tidak ada user, redirect ke login
+      if (!currentUser) {
+        // Hapus semua auth state dari localStorage
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("rememberedEmail");
+        
+        // Redirect ke login
+        router.push("/");
       }
-      setChecking(false);
     });
 
-    return () => unsub();
+    return () => unsubscribe();
   }, [router]);
 
-  if (checking) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Memeriksa autentikasi...</p>
+        </div>
       </div>
     );
   }
