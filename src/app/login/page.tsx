@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { successAlert, errorAlert } from "@/lib/alert";
 import { useRouter } from "next/navigation";
@@ -25,19 +25,6 @@ export default function LoginPage() {
       setRememberMe(true);
     }
   }, []);
-
-  // page.tsx - tambahkan di bagian atas komponen, setelah router
-  useEffect(() => {
-    // Cek apakah user sudah login
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Jika sudah login, redirect ke dashboard
-        router.replace("/dashboard");
-      }
-    });
-
-    return () => unsubscribe();
-  }, [router]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -68,7 +55,7 @@ export default function LoginPage() {
 
       successAlert("Login berhasil");
 
-      // Tunggu sebentar sebelum redirect
+      // Tunggu sebentar sebelum redirect ke dashboard
       setTimeout(() => {
         router.replace("/dashboard");
       }, 500);
