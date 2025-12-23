@@ -1,24 +1,27 @@
+// middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const isAuthenticated = request.cookies.get('auth')?.value === 'true';
+  const token = request.cookies.get('session')?.value;
+  const { pathname } = request.nextUrl;
+
+  // Public routes yang tidak perlu auth
+  const publicRoutes = ['/', '/register', '/forgot-password'];
   
-  // Jika mencoba akses dashboard tanpa login
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!isAuthenticated) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
+  // Jika mencoba akses protected route tanpa token
+  if (!publicRoutes.includes(pathname) && !token) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
-  
-  // Jika sudah login tapi akses login page
-  if (request.nextUrl.pathname === '/login' && isAuthenticated) {
+
+  // Jika sudah login tapi mencoba akses login page
+  if (publicRoutes.includes(pathname) && token) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
-  
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login']
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

@@ -44,14 +44,25 @@ export default function DashboardLayout({
 
   // 🔥 LOGOUT YANG BENAR (FIREBASE)
   // layout.tsx - Perbaiki handleLogout
+  // layout.tsx - Perbaiki handleLogout
   const handleLogout = async () => {
     try {
+      // Hapus semua session storage
+      sessionStorage.removeItem("firebase_token");
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("rememberedEmail");
+
+      // Sign out dari Firebase
       await signOut(auth);
 
-      // BIARKAN AuthGuard YANG HANDLE REDIRECT
-      router.replace("/");
+      // Tunggu sebentar sebelum redirect
+      setTimeout(() => {
+        router.replace("/");
+      }, 300);
     } catch (err) {
       console.error("Logout gagal:", err);
+      // Fallback: redirect manual
+      router.replace("/");
     }
   };
 

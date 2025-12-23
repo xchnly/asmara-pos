@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { successAlert, errorAlert } from "@/lib/alert";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,19 @@ export default function LoginPage() {
     }
   }, []);
 
+  // page.tsx - tambahkan di bagian atas komponen, setelah router
+  useEffect(() => {
+    // Cek apakah user sudah login
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Jika sudah login, redirect ke dashboard
+        router.replace("/dashboard");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
   const handleLogin = async () => {
     if (!email || !password) {
       errorAlert("Email dan password wajib diisi");
@@ -35,7 +48,17 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      await signInWithEmailAndPassword(auth, email, password);
+      // Login dengan Firebase
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      // Simpan token/session (opsional, untuk cache)
+      const token = await user.getIdToken();
+      sessionStorage.setItem("firebase_token", token);
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
@@ -45,13 +68,31 @@ export default function LoginPage() {
 
       successAlert("Login berhasil");
 
-      // 🔑 PAKAI ROUTER, BUKAN HARD REFRESH
-      router.replace("/dashboard");
+      // Tunggu sebentar sebelum redirect
+      setTimeout(() => {
+        router.replace("/dashboard");
+      }, 500);
     } catch (err) {
       if (err instanceof FirebaseError) {
-        errorAlert(err.message);
+        // Tampilkan error yang lebih user-friendly
+        let errorMessage = "Login gagal";
+        switch (err.code) {
+          case "auth/user-not-found":
+          case "auth/wrong-password":
+            errorMessage = "Email atau password salah";
+            break;
+          case "auth/too-many-requests":
+            errorMessage = "Terlalu banyak percobaan. Coba lagi nanti";
+            break;
+          case "auth/network-request-failed":
+            errorMessage = "Koneksi internet bermasalah";
+            break;
+          default:
+            errorMessage = err.message;
+        }
+        errorAlert(errorMessage);
       } else {
-        errorAlert("Login gagal");
+        errorAlert("Login gagal. Coba lagi.");
       }
     } finally {
       setLoading(false);
