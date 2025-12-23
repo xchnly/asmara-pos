@@ -35,18 +35,10 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      // Login dengan Firebase
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
+      // Login dengan Firebase (tanpa token/session)
+      await signInWithEmailAndPassword(auth, email, password);
 
-      // Simpan token/session (opsional, untuk cache)
-      const token = await user.getIdToken();
-      sessionStorage.setItem("firebase_token", token);
-
+      // Simpan email ke localStorage jika remember me dicentang
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
       } else {
@@ -55,13 +47,10 @@ export default function LoginPage() {
 
       successAlert("Login berhasil");
 
-      // Tunggu sebentar sebelum redirect ke dashboard
-      setTimeout(() => {
-        router.replace("/dashboard");
-      }, 500);
+      // Langsung redirect ke dashboard
+      router.replace("/dashboard");
     } catch (err) {
       if (err instanceof FirebaseError) {
-        // Tampilkan error yang lebih user-friendly
         let errorMessage = "Login gagal";
         switch (err.code) {
           case "auth/user-not-found":
@@ -74,8 +63,11 @@ export default function LoginPage() {
           case "auth/network-request-failed":
             errorMessage = "Koneksi internet bermasalah";
             break;
+          case "auth/invalid-api-key":
+            errorMessage = "Konfigurasi sistem bermasalah";
+            break;
           default:
-            errorMessage = err.message;
+            errorMessage = "Login gagal. Coba lagi.";
         }
         errorAlert(errorMessage);
       } else {
