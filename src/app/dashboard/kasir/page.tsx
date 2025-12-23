@@ -335,66 +335,96 @@ export default function KasirPage() {
       const receiptNumber = `TRX-${Date.now().toString().slice(-6)}`;
 
       await runTransaction(db, async (transaction) => {
-        // Kurangi stok bahan untuk semua item
+        // ===== 1. READ SEMUA MATERIAL =====
+        const materialMap = new Map();
+
         for (const cartItem of cart) {
           const product = products.find((p) => p.id === cartItem.productId);
           if (!product) continue;
 
           for (const bomItem of product.bom) {
             const materialRef = doc(db, "materials", bomItem.materialId);
-            const snap = await transaction.get(materialRef);
 
-            if (!snap.exists()) {
-              throw new Error("Bahan tidak ditemukan");
+            if (!materialMap.has(bomItem.materialId)) {
+              const snap = await transaction.get(materialRef);
+
+              if (!snap.exists()) {
+                throw new Error("Bahan tidak ditemukan");
+              }
+
+              materialMap.set(bomItem.materialId, {
+                ref: materialRef,
+                stock: snap.data().stock || 0,
+              });
             }
-
-            const currentStock = snap.data().stock || 0;
-            const needed = bomItem.qty * cartItem.qty;
-
-            if (currentStock < needed) {
-              throw new Error(`Stok ${product.name} tidak mencukupi`);
-            }
-
-            transaction.update(materialRef, {
-              stock: currentStock - needed,
-              lastUsed: Timestamp.now(),
-            });
           }
-
-          // Simpan penjualan per item
-          await addDoc(collection(db, "sales"), {
-            productId: cartItem.productId,
-            productName: cartItem.productName,
-            qty: cartItem.qty,
-            price: cartItem.price,
-            total: cartItem.total,
-            note: cartItem.note || null,
-            receiptNumber,
-            paymentMethod,
-            date: Timestamp.now(),
-          });
         }
 
-        // Simpan transaksi summary
-        await addDoc(collection(db, "transactions"), {
+        // ===== 2. HITUNG KEBUTUHAN =====
+        const usageMap = new Map();
+
+        for (const cartItem of cart) {
+          const product = products.find((p) => p.id === cartItem.productId);
+          if (!product) continue;
+
+          for (const bomItem of product.bom) {
+            const needed = bomItem.qty * cartItem.qty;
+            usageMap.set(
+              bomItem.materialId,
+              (usageMap.get(bomItem.materialId) || 0) + needed
+            );
+          }
+        }
+
+        // ===== 3. VALIDASI + UPDATE =====
+        for (const [materialId, needed] of usageMap.entries()) {
+          const material = materialMap.get(materialId);
+
+          if (material.stock < needed) {
+            throw new Error("Stok bahan tidak mencukupi");
+          }
+
+          transaction.update(material.ref, {
+            stock: material.stock - needed,
+            lastUsed: Timestamp.now(),
+          });
+        }
+      });
+
+      // Simpan sales per item
+      for (const cartItem of cart) {
+        await addDoc(collection(db, "sales"), {
+          productId: cartItem.productId,
+          productName: cartItem.productName,
+          qty: cartItem.qty,
+          price: cartItem.price,
+          total: cartItem.total,
+          note: cartItem.note || null,
           receiptNumber,
-          items: cart.map((item) => ({
-            productName: item.productName,
-            qty: item.qty,
-            price: item.price,
-            total: item.total,
-          })),
-          subtotal: totals.subtotal,
-          tax: totals.tax,
-          serviceCharge: totals.service,
-          grandTotal: totals.grandTotal,
           paymentMethod,
-          cash: totals.cash,
-          change: totals.change,
-          customerNote: customerNote.trim() || null,
           date: Timestamp.now(),
-          status: "completed",
         });
+      }
+
+      // Simpan transaksi summary
+      await addDoc(collection(db, "transactions"), {
+        receiptNumber,
+        items: cart.map((item) => ({
+          productName: item.productName,
+          qty: item.qty,
+          price: item.price,
+          total: item.total,
+        })),
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        serviceCharge: totals.service,
+        grandTotal: totals.grandTotal,
+        paymentMethod,
+        cash: totals.cash,
+        change: totals.change,
+        customerNote: customerNote.trim() || null,
+        date: Timestamp.now(),
+        status: "completed",
       });
 
       // Prepare receipt data
@@ -418,7 +448,9 @@ export default function KasirPage() {
       successAlert(`Transaksi ${receiptNumber} berhasil!`);
     } catch (err: unknown) {
       console.error(err);
-      errorAlert(err instanceof Error ? err.message : "Gagal memproses transaksi");
+      errorAlert(
+        err instanceof Error ? err.message : "Gagal memproses transaksi"
+      );
     } finally {
       setLoading(false);
     }
