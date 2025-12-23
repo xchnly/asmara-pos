@@ -32,12 +32,6 @@ export default function LoginPage() {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      errorAlert("Format email tidak valid");
-      return;
-    }
-
     try {
       setLoading(true);
 
@@ -49,23 +43,16 @@ export default function LoginPage() {
         localStorage.removeItem("rememberedEmail");
       }
 
-      // Simpan auth state dengan lebih reliable
-      localStorage.setItem("isAuthenticated", "true");
+      successAlert("Login berhasil");
 
-      // Gunakan cookies dengan SameSite attribute
-      document.cookie = "auth=true; path=/; max-age=86400; SameSite=Lax";
-
-      successAlert("Login berhasil! Mengarahkan ke dashboard...");
-
-      // Tunggu sejenak sebelum redirect untuk memastikan state tersimpan
-      // page.tsx - Di dalam handleLogin, ganti setTimeout:
-      setTimeout(() => {
-        // Gunakan hard refresh untuk reset semua state
-        window.location.href = "/dashboard";
-      }, 1000);
-    } catch (err: unknown) {
-      console.error("Login error:", err);
-      // ... (error handling tetap sama)
+      // 🔑 PAKAI ROUTER, BUKAN HARD REFRESH
+      router.replace("/dashboard");
+    } catch (err) {
+      if (err instanceof FirebaseError) {
+        errorAlert(err.message);
+      } else {
+        errorAlert("Login gagal");
+      }
     } finally {
       setLoading(false);
     }
